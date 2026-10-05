@@ -19,3 +19,4 @@ jobs:
         with:
           name: computer-browser-candidate
           path: .artifacts/
+          include-hidden-files: true
