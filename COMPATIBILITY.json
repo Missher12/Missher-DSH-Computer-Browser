@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "package": "@missher/dsh-computer-browser",
+  "version": "0.1.0-rc.1",
+  "status": "packaging-candidate",
+  "maintenanceRepository": "https://github.com/Missher12/Missher-DSH-Computer-Browser",
+  "nodeRange": "^22.19.0 || >=24.0.0",
+  "requiredDesktop": "Matching Missher Desktop / Host integration; the Bundle alone does not supply its bridge or sidebar client.",
+  "browserAutomationVersion": 1,
+  "officialRc2ElectronSupported": false,
+  "requiredHostChanges": [
+    "Desktop browser operation bridge and matching Sidebar client",
+    "Native Computer Use trusted authorization and interaction controls",
+    "MCP excludedTools support for Playwright",
+    "runProfile.prepareContext installs trusted Desktop adapters before the plugin tree loads"
+  ],
+  "versionPolicy": "Peer admission is intentionally broad. Version labels alone do not certify these runtime capabilities, including in previously published Missher Desktop assets.",
+  "backend": {
+    "default": "electron",
+    "alternative": "playwright",
+    "playwrightMode": "launch",
+    "headless": false,
+    "existingBrowserAttachment": false
+  },
+  "native": {
+    "sdk": "@trycua/cua-driver",
+    "version": "0.28.0",
+    "mode": "Standard",
+    "browserTools": false,
+    "modelSessionManagement": false,
+    "modelRecordingAndReplay": false,
+    "automaticOsPermissionRequest": false,
+    "automaticForegroundRetry": false
+  },
+  "historicalValidation": {
+    "date": "2026-10-04",
+    "installedBundle": "0.1.0-candidate.1",
+    "desktopBaseVersion": "0.2.0-rc.2",
+    "desktopIntegration": "latest-cbu-20261004",
+    "platform": "darwin-x64",
+    "installationAndColdStart": "passed",
+    "scope": "Local installation receipt; not an acceptance result for 0.1.0-rc.1."
+  },
+  "nativeAcceptance": {
+    "platform": "macOS 15.7.4 Intel",
+    "sdkHost": "Node 25.6.0",
+    "targetFixture": "Electron 44.0.0",
+    "status": "partial",
+    "foregroundInputAndIndependentReadback": "passed",
+    "backgroundInput": "not-passed",
+    "postActionPngFreshness": "unconfirmed",
+    "electronSdkHostTccAndInput": "not-verified"
+  },
+  "notVerified": [
+    "Real paid-model visual task",
+    "macOS Apple Silicon native acceptance",
+    "Windows native acceptance",
+    "Linux native acceptance"
+  ],
+  "storage": {
+    "default": "ephemeral",
+    "persistentLogin": "Explicit native user confirmation for future tabs",
+    "restoreRuntimeOrReplayActions": false,
+    "removePersistentLoginOnUninstall": false
+  },
+  "packageValidation": "See VALIDATION.md and this version's artifact checks; do not inherit historical installation status."
+}

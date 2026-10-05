@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "package": "@missher/dsh-computer-browser",
+  "version": "0.1.0-rc.1",
+  "recordedOn": "2026-10-05",
+  "maintenanceRepository": "https://github.com/Missher12/Missher-DSH-Computer-Browser",
+  "previousCandidate": {
+    "version": "0.1.0-candidate.1",
+    "developmentBaseline": "383913fe07cac9a5de38fc26e2fb003ef42d977d",
+    "archiveSha256": "56b9acee105167f00fc2677c9ee112ff6d4bd6e315e55ec1f11d0ae8c778eeee",
+    "role": "Historical extraction and verification baseline; no longer a parallel maintenance source."
+  },
+  "upstream": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "tag": "dsh-v0.2.0-rc.2",
+    "commit": "639ed015397290b3745d163aafe02ffee4aa3f84",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2026 DeepSeek"
+  },
+  "hashMeaning": "extractionSha256 records the original candidate file before independent-repository import-path and packaging changes. It is not a claim that the current file retains those bytes. upstreamSha256 is null for project additions.",
+  "scope": {
+    "runtimeModules": 8,
+    "typeOnlyModules": 3,
+    "upstreamRuntimeModules": 4,
+    "projectAddedRuntimeModules": 4
+  },
+  "changesAtExtraction": [
+    "Relocate modules into this repository and replace package-local links with relative imports.",
+    "Keep shared Host implementations external.",
+    "The Bundle entry validates required trusted Host services before starting providers; later changes are tracked by this repository history."
+  ],
+  "files": [
+    {
+      "path": "src/index.ts",
+      "kind": "runtime",
+      "originalPath": "plugins/dsh-computer-browser/src/index.ts",
+      "extractionSha256": "f02f9e5b839c27131010c3ae40fd621cd472a56e2276d41b765287b3463f3f23",
+      "origin": "project-addition",
+      "upstreamSha256": null,
+      "license": "MIT"
+    },
+    {
+      "path": "src/browser/electron.ts",
+      "kind": "runtime",
+      "originalPath": "packages/experimental/browser-use-electron/src/index.ts",
+      "extractionSha256": "ee1ccd034a9eb2020f37ea9d218183a2bf6ac76cf556d0d10d750b8c5d73da29",
+      "origin": "project-addition",
+      "upstreamSha256": null,
+      "license": "MIT"
+    },
+    {
+      "path": "src/browser/playwright.ts",
+      "kind": "runtime",
+      "originalPath": "packages/experimental/browser-use-playwright-mcp/src/index.ts",
+      "extractionSha256": "08bb7fa78e8898b202e9dee8075fb42d1ed15bda70c24b93dd7cbffc86bb3dbb",
+      "origin": "upstream-modified",
+      "upstreamSha256": "50d080f25b62c59352eb41c8f238e1cf9caffb08077644837d33dbcc8eabe2bf",
+      "license": "MIT"
+    },
+    {
+      "path": "src/browser/runtime/resources.ts",
+      "kind": "runtime",
+      "originalPath": "packages/experimental/browser-use-runtime/src/index.ts",
+      "extractionSha256": "e5407a8f04418f246fd05120aba349bb530702198c73b86347459360fb77880b",
+      "origin": "upstream-unmodified",
+      "upstreamSha256": "e5407a8f04418f246fd05120aba349bb530702198c73b86347459360fb77880b",
+      "license": "MIT"
+    },
+    {
+      "path": "src/browser/runtime/mcp.ts",
+      "kind": "runtime",
+      "originalPath": "packages/experimental/browser-use-runtime/src/mcp.ts",
+      "extractionSha256": "b62223f216a67f1fdb31b1305471c718345e1402493cdc341091abfcc02c0254",
+      "origin": "upstream-modified",
+      "upstreamSha256": "3fbfa7e63491f82df831d0da0bef69dd83bdb212f0bf6820eb6185a1f800d088",
+      "license": "MIT"
+    },
+    {
+      "path": "src/computer/index.ts",
+      "kind": "runtime",
+      "originalPath": "packages/experimental/computer-use-cua-driver-native/src/index.ts",
+      "extractionSha256": "7caa9dd1bda05099914721b3d2746fef2d4639b89f808d84cab33436e6705ec7",
+      "origin": "upstream-modified",
+      "upstreamSha256": "ddcbff07ab6912d73963bb45d5a05235eef3c9f51e8e720b3d0f659708f45eb5",
+      "license": "MIT"
+    },
+    {
+      "path": "src/computer/sessions.ts",
+      "kind": "runtime",
+      "originalPath": "packages/experimental/computer-use-cua-driver-native/src/sessions.ts",
+      "extractionSha256": "cabe29aa7a7ea1a3e77bd6c419dad0ff2c757a6001882fdc988e720e4f25b415",
+      "origin": "project-addition",
+      "upstreamSha256": null,
+      "license": "MIT"
+    },
+    {
+      "path": "src/computer/results.ts",
+      "kind": "runtime",
+      "originalPath": "packages/experimental/computer-use-cua-driver-native/src/results.ts",
+      "extractionSha256": "702dfc3dc388b662d6a2e46e1dffe5edde4ec6ba3accdd419b8bc08ccd630d50",
+      "origin": "project-addition",
+      "upstreamSha256": null,
+      "license": "MIT"
+    },
+    {
+      "path": "src/contracts/control.ts",
+      "kind": "type-only",
+      "originalPath": "packages/experimental/browser-use-runtime/src/control.ts",
+      "extractionSha256": "f1eeae62a926679ed32730184847ef09cba0c3ff55a9261e17560a2dc5a3efce",
+      "origin": "project-addition",
+      "upstreamSha256": null,
+      "license": "MIT"
+    },
+    {
+      "path": "src/contracts/desktop.ts",
+      "kind": "type-only",
+      "originalPath": "packages/browser-use/browser-use/src/desktop.ts",
+      "extractionSha256": "209fc7f6047be10f7475cc8e34109b3a177cab01d389336ad214d1104f2027c2",
+      "origin": "project-addition",
+      "upstreamSha256": null,
+      "license": "MIT"
+    },
+    {
+      "path": "src/contracts/authorization.ts",
+      "kind": "type-only",
+      "originalPath": "packages/computer-use/computer-use/src/authorization.ts",
+      "extractionSha256": "3e2f5d390646d0069c0922c545f6312daf2e5241063e6682808a89895d01801e",
+      "origin": "project-addition",
+      "upstreamSha256": null,
+      "license": "MIT"
+    }
+  ],
+  "externalDependencies": "No external npm implementation or native platform binary is included in these source-origin records or embedded in the Bundle archive. See THIRD_PARTY_NOTICES.md and package.json."
+}

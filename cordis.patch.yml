@@ -1,0 +1,9 @@
+- insert:
+    - id: computer-browser-use-registry
+      name: '@deepseek-ai/dsh-browser-use'
+    - id: computer-browser-computer-registry
+      name: '@deepseek-ai/dsh-computer-use'
+    - id: computer-browser
+      name: '@missher/dsh-computer-browser'
+      config:
+        backend: electron
