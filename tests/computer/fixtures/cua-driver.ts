@@ -36,6 +36,14 @@ export const catalog = {
       description: 'Read host desktop permissions without prompting.',
       inputSchema: { type: 'object', properties: {} },
     },
+    ...['double_click', 'right_click', 'set_value'].map(name => ({
+      name, description: 'Pinned SDK window input name with legacy pid/window_id addressing.',
+      inputSchema: {
+        type: 'object', additionalProperties: false,
+        properties: { pid: { type: 'integer' }, window_id: { type: 'integer' }, x: { type: 'number' }, y: { type: 'number' }, value: { type: 'string' } },
+        required: name === 'set_value' ? ['pid', 'value'] : ['pid'],
+      },
+    })),
   ],
 }
 

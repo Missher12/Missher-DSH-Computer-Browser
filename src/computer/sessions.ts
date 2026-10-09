@@ -8,6 +8,7 @@ import type { BrowserInteractionController, BrowserInteractionState } from '../c
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import type { CuaDriverLike, CuaDriverSessionLike, DriverAuthorizationDecision, DriverAuthorizationRequest, ToolResult } from '@trycua/cua-driver'
 import type * as NativeSdk from '@trycua/cua-driver'
+import { hasWindowScreenshot } from './results.ts'
 
 interface Entry {
   agent: Agent
@@ -20,6 +21,7 @@ interface Entry {
   removeControl?: () => void
   deniedResources: Set<string>
   observedTargets: Set<string>
+  observationVersions: Map<string, object>
   state: BrowserInteractionState
   listeners: Set<() => void>
 }
@@ -38,6 +40,7 @@ export class NativeSessions {
   private readonly entries = new Map<Agent, Entry>()
   private owner: Entry | undefined
   private closed = false
+  private readonly observations = new WeakMap<ToolResult, { entry: Entry; id: ComputerActivationId; target: string; version: object }>()
 
   /**
    * @param ctx - provider context with the exact live Agent registry.
@@ -100,17 +103,27 @@ export class NativeSessions {
       combined.throwIfAborted()
       if (this.ctx.agents.get(agent.id) !== agent) throw new HarnessError('This desktop activation has ended.', 'CU_STALE_ACTIVATION')
       const target = targetKey(args)
+      const version = {}
+      // Even a failed refresh invalidates the earlier frame for this window.
+      if (name === 'get_window_state' && target !== undefined) {
+        entry.observedTargets.delete(target)
+        entry.observationVersions.set(target, version)
+      }
       if (WINDOW_ACTIONS.has(name)) {
         if (target === undefined || !entry.observedTargets.has(target)) {
           throw new HarnessError('Get a fresh window snapshot for this exact target before sending input.', 'CU_FRESH_OBSERVATION_REQUIRED')
         }
         // A dispatched action consumes its observation even if native completion is uncertain.
         entry.observedTargets.delete(target)
+        entry.observationVersions.delete(target)
       }
       this.publish(entry, { status: 'running', operation: name })
       const result = await surface.callTool(name, JSON.stringify(args), { signal: combined })
       combined.throwIfAborted()
-      if (name === 'get_window_state' && target !== undefined && !result.isError && result.errorCode === undefined && Number(result.action?.effect) !== 4) entry.observedTargets.add(target)
+      if (name === 'get_window_state' && target !== undefined && !result.isError && result.errorCode === undefined && Number(result.action?.effect) !== 4) {
+        if (!hasWindowScreenshot(result)) throw new HarnessError('The native observation did not return a usable PNG. Input is blocked until a new screenshot succeeds; do not use an earlier frame.', 'CU_SCREENSHOT_UNAVAILABLE')
+        this.observations.set(result, { entry, id: entry.id, target, version })
+      }
       return result
     }).finally(() => {
       signal.removeEventListener('abort', abort)
@@ -118,6 +131,17 @@ export class NativeSessions {
     })
     entry.tail = operation.then(() => {}, () => {})
     return operation
+  }
+
+  /** Admit a validated frame only after the shared MCP image adapter succeeds. */
+  confirmObservation(result: ToolResult): void {
+    const observation = this.observations.get(result)
+    this.observations.delete(result)
+    if (observation === undefined) return
+    const { entry, id, target, version } = observation
+    if (this.active(entry, id, entry.controller.signal) && entry.closing === undefined && this.ctx.agents.get(entry.agent.id) === entry.agent && entry.observationVersions.get(target) === version) {
+      entry.observedTargets.add(target)
+    }
   }
 
   /**
@@ -193,6 +217,7 @@ export class NativeSessions {
       disposeOwner: () => Promise.resolve(),
       deniedResources: new Set(),
       observedTargets: new Set(),
+      observationVersions: new Map(),
       state: { provider: 'cua-driver-native', status: 'ready', mode: 'ephemeral' },
       listeners: new Set(),
     }
@@ -236,6 +261,7 @@ export class NativeSessions {
       entry.surface?.close()
       delete entry.surface
       entry.observedTargets.clear()
+      entry.observationVersions.clear()
       await this.ctx.get('computerAuthorization')?.revoke(entry.id)
       if (this.owner === entry) this.owner = undefined
     })().finally(() => { delete entry.closing })
@@ -254,7 +280,7 @@ export class NativeSessions {
   }
 }
 
-const WINDOW_ACTIONS = new Set(['click', 'drag', 'scroll', 'type_text', 'press_key', 'hotkey', 'invoke_menu', 'set_window_frame'])
+const WINDOW_ACTIONS = new Set(['click', 'double_click', 'right_click', 'drag', 'scroll', 'type_text', 'press_key', 'hotkey', 'set_value', 'invoke_menu', 'set_window_frame'])
 
 function targetKey(args: Record<string, unknown>): string | undefined {
   if (args.target !== undefined) {

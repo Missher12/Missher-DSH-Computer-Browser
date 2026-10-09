@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "package": "@missher/dsh-computer-browser",
-  "version": "0.1.0-rc.1",
-  "recordedOn": "2026-10-05",
+  "version": "0.1.0-rc.5",
+  "recordedOn": "2026-10-07",
   "maintenanceRepository": "https://github.com/Missher12/Missher-DSH-Computer-Browser",
   "previousCandidate": {
     "version": "0.1.0-candidate.1",
@@ -130,5 +130,32 @@
       "license": "MIT"
     }
   ],
-  "externalDependencies": "No external npm implementation or native platform binary is included in these source-origin records or embedded in the Bundle archive. See THIRD_PARTY_NOTICES.md and package.json."
+  "externalDependencies": "No external npm implementation or native platform binary is included in these source-origin records or embedded in the Bundle archive. See THIRD_PARTY_NOTICES.md and package.json.",
+  "independentChanges": [
+    {
+      "version": "0.1.0-rc.2",
+      "recordedOn": "2026-10-05",
+      "files": [
+        "src/browser/electron.ts",
+        "tests/electron/provider.spec.ts"
+      ],
+      "description": "Use supported oneOf action schemas and validate open/navigate URLs before minting an owner or calling the Desktop bridge. Add schema/SDK, invalid-input side-effect and valid-request regressions. Extraction hashes remain unchanged historical baselines."
+    },
+    {
+      "version": "0.1.0-rc.5",
+      "recordedOn": "2026-10-07",
+      "files": [
+        "src/computer/index.ts",
+        "src/computer/sessions.ts",
+        "src/computer/results.ts",
+        "tests/computer/fixtures/images.ts"
+      ],
+      "description": "Project-authored capture-only policy, unsafe AX catalog exclusions and image-admission authority checks. Test PNG fixture is original. No SDK implementation copied; extraction baseline hashes unchanged."
+    }
+  ],
+  "nativeDiagnosticsReference": {
+    "repository": "https://github.com/trycua/cua",
+    "tag": "cua-driver-rs-v0.28.0",
+    "scope": "Pinned protocol behavior consulted; no Rust implementation copied; extraction hashes remain unchanged."
+  }
 }

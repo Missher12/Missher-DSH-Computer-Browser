@@ -11,7 +11,8 @@ import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import type { DriverAuthorizationRequest } from '@trycua/cua-driver'
 import * as Provider from '../../src/computer/index.ts'
-import { fixture, resetFixture } from './fixtures/cua-driver.ts'
+import { fixture, resetFixture, screenshotBase64 } from './fixtures/cua-driver.ts'
+import { imageRoute, mountImageAdmission } from './fixtures/images.ts'
 
 vi.mock('@trycua/cua-driver', async () => import('./fixtures/cua-driver.ts'))
 
@@ -25,11 +26,12 @@ beforeEach(async () => {
   controls.clear()
   ctx = new Context()
   await mountAgentLoopTestDependencies(ctx)
+  await mountImageAdmission(ctx)
   await ctx.plugin(ComputerUseRegistry)
   ctx.provide('browserInteraction', { register(agent, control) { controls.set(agent, control); return () => { controls.delete(agent) } } })
   const harness = await mountAgentLoopTestHarness(ctx)
-  first = await harness.create(SessionId('native-first'))
-  second = await harness.create(SessionId('native-second'))
+  first = await harness.create(SessionId('native-first'), imageRoute)
+  second = await harness.create(SessionId('native-second'), imageRoute)
   await ctx.plugin(Provider)
 })
 
@@ -60,6 +62,45 @@ it('requires a live owner, fresh exact-target observations, and a read after eac
   expect((await execute(first, 'click')).isError).toBe(false)
   expect((await execute(first, 'click')).isError).toBe(true)
   expect(fixture.calls.filter(call => call.name === 'click')).toHaveLength(1)
+})
+
+it.each([
+  ['failed capture', { isError: true, content: [{ type: 'text', text: 'Capture unavailable' }] }],
+  ['empty capture', { content: [] }],
+  ['text-only capture', { content: [{ type: 'text', text: 'No screenshot' }] }],
+  ['file-only capture', { content: [{ type: 'text', text: 'Saved screenshot' }], structuredContent: { screenshot_file_path: '/fixture/window.png' } }],
+  ['empty PNG', { content: [{ type: 'image', mimeType: 'image/png', data: '' }] }],
+  ['invalid PNG', { content: [{ type: 'image', mimeType: 'image/png', data: Buffer.from('not PNG').toString('base64') }] }],
+  ['truncated PNG', { content: [{ type: 'image', mimeType: 'image/png', data: Buffer.from(screenshotBase64, 'base64').subarray(0, 33).toString('base64') }] }],
+])('revokes the old frame after a %s and cannot dispatch input', async (_label, raw) => {
+  expect((await execute(first, 'get_window_state')).isError).toBe(false)
+  fixture.call = async () => raw
+  expect((await execute(first, 'get_window_state')).isError).toBe(true)
+  delete fixture.call
+  expect((await execute(first, 'click')).isError).toBe(true)
+  expect(fixture.calls.filter(call => call.name === 'click')).toHaveLength(0)
+  expect((await execute(first, 'get_window_state')).isError).toBe(false)
+  expect((await execute(first, 'click')).isError).toBe(false)
+})
+
+it('does not replay an uncertain action and consumes its frame until a new observation', async () => {
+  await execute(first, 'get_window_state')
+  fixture.call = async () => ({ isError: true, content: [{ type: 'text', text: 'Input delivery uncertain' }] })
+  expect((await execute(first, 'click')).isError).toBe(true)
+  delete fixture.call
+  expect((await execute(first, 'click')).isError).toBe(true)
+  expect(fixture.calls.filter(call => call.name === 'click')).toHaveLength(1)
+})
+
+it.each(['double_click', 'right_click', 'set_value'])('requires and consumes an exact fresh frame for SDK %s input', async (name) => {
+  const input = name === 'set_value' ? { value: 'Fixture' } : { x: 1, y: 1 }
+  expect((await execute(first, name, { pid: 9, window_id: 7, ...input })).isError).toBe(true)
+  await execute(first, 'get_window_state')
+  expect((await execute(first, name, { pid: 9, ...input })).isError).toBe(true)
+  expect((await execute(first, name, { pid: 9, window_id: 8, ...input })).isError).toBe(true)
+  expect((await execute(first, name, { pid: 9, window_id: 7, ...input })).isError).toBe(false)
+  expect((await execute(first, name, { pid: 9, window_id: 7, ...input })).isError).toBe(true)
+  expect(fixture.calls.filter(call => call.name === name)).toHaveLength(1)
 })
 
 it('normalizes SDK window targets to the same exact identity as top-level snapshot arguments', async () => {

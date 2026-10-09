@@ -85,3 +85,47 @@ it('aborts model admission on unload, restores caller cancellation, and closes t
     await disposal
   }
 })
+
+it.each(['rejected image admission', 'newer failed observation'] as const)('does not authorize input after %s', async (failure) => {
+  const resolving = Promise.withResolvers<void>()
+  const resolved = Promise.withResolvers<LlmResolvedModelInfo>()
+  class DeferredModel extends LlmAdapter {
+    override resolveModel(): Promise<LlmResolvedModelInfo> {
+      resolving.resolve()
+      return resolved.promise
+    }
+
+    stream(_options: GenerateOptions): AsyncIterable<StreamChunk> {
+      throw new Error('This fixture never generates a model response')
+    }
+  }
+  ctx.llm.registerAdapter(['visual'], new DeferredModel())
+  const harness = await mountAgentLoopTestHarness(ctx)
+  const agent = await harness.create(SessionId('native-delayed-admission'), { provider: 'visual', model: 'vision' })
+  await ctx.plugin(NativeProvider)
+  const execute = (name: string) => ctx.tools.execute({
+    agent, signal: new AbortController().signal, callId: ToolCallId('delayed-frame'),
+    name: `cua_driver_native__${name}`, arguments: { pid: 9, window_id: 7 },
+  })
+  const first = execute('get_window_state')
+  await resolving.promise
+  try {
+    // The SDK returned a PNG, but its model-facing image is still being prepared.
+    expect((await execute('click')).isError).toBe(true)
+    if (failure === 'newer failed observation') {
+      fixture.call = async () => ({ isError: true, content: [{ type: 'text', text: 'New capture failed' }] })
+      expect((await execute('get_window_state')).isError).toBe(true)
+      delete fixture.call
+      resolved.resolve({ provider: 'visual', id: 'vision', name: 'Fixture', inputModalities: ['text', 'image'] })
+      expect((await first).isError).toBe(false)
+    } else {
+      resolved.reject(new Error('Fixture image admission failed'))
+      expect((await first).isError).toBe(true)
+    }
+    expect((await execute('click')).isError).toBe(true)
+    expect(fixture.calls.filter(call => call.name === 'click')).toHaveLength(0)
+  } finally {
+    resolved.reject(new Error('Test cleanup'))
+    await first
+  }
+})

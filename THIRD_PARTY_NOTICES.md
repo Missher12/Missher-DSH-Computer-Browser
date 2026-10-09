@@ -38,3 +38,5 @@ That package's `node-runtime-NOTICE.md` identifies the corresponding source as t
 Cua's [license](https://github.com/trycua/cua/blob/main/LICENSE.md) and [licensing map](https://github.com/trycua/cua/blob/main/LICENSING.md) distinguish the MIT driver from other products and optional components. This Bundle does not include Cua Spaces, a perception extension, OCR model weights or a separately installed ffmpeg binary. Installing another optional component creates a separate dependency and license review; the driver name alone does not determine its terms.
 
 An offline distribution or Desktop package that includes these dependencies is a different distribution scope from this `.tgz`. Its distributor must carry the applicable complete license texts, notices and corresponding-source information; this short notice does not substitute for those materials.
+
+The rc.4 native diagnostic projection was checked against Cua tag `cua-driver-rs-v0.28.0` (`libs/cua-driver/rust/crates/platform-macos/src/tools/type_text.rs`). No Rust implementation was copied. Existing source copyrights and extraction hashes remain unchanged.

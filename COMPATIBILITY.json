@@ -1,18 +1,21 @@
 {
   "schemaVersion": 1,
   "package": "@missher/dsh-computer-browser",
-  "version": "0.1.0-rc.1",
-  "status": "packaging-candidate",
+  "version": "0.1.0-rc.5",
+  "status": "production-stability-candidate",
   "maintenanceRepository": "https://github.com/Missher12/Missher-DSH-Computer-Browser",
   "nodeRange": "^22.19.0 || >=24.0.0",
-  "requiredDesktop": "Matching Missher Desktop / Host integration; the Bundle alone does not supply its bridge or sidebar client.",
+  "requiredDesktop": "Matching Missher Desktop / Host and Sidebar attachment fix for the 2026-10-05 open failure; updating this Bundle alone is insufficient.",
   "browserAutomationVersion": 1,
   "officialRc2ElectronSupported": false,
   "requiredHostChanges": [
     "Desktop browser operation bridge and matching Sidebar client",
     "Native Computer Use trusted authorization and interaction controls",
     "MCP excludedTools support for Playwright",
-    "runProfile.prepareContext installs trusted Desktop adapters before the plugin tree loads"
+    "runProfile.prepareContext installs trusted Desktop adapters before the plugin tree loads",
+    "Reservation claim/state before guest attachment, main-process lease binding, bounded initialization diagnostics and failure cleanup from the 2026-10-05 attachment fix",
+    "Bounded Electron cancellation, unsettled-command resume refusal, current-frame CDP screenshots and unmounted-task diagnosis (2026-10-07)",
+    "Final owner-window painting lifecycle for sustained occlusion and reopened canvas screenshots; restore prior throttling, preserve cancellation and late-frame guards, and do not steal focus (2026-10-07)"
   ],
   "versionPolicy": "Peer admission is intentionally broad. Version labels alone do not certify these runtime capabilities, including in previously published Missher Desktop assets.",
   "backend": {
@@ -30,7 +33,9 @@
     "modelSessionManagement": false,
     "modelRecordingAndReplay": false,
     "automaticOsPermissionRequest": false,
-    "automaticForegroundRetry": false
+    "automaticForegroundRetry": false,
+    "windowObservation": "capture-only; full AX, verify_state and invoke_menu disabled",
+    "inputAdmission": "usable inline PNG admitted by Host image pipeline; failed refresh revokes old frame"
   },
   "historicalValidation": {
     "date": "2026-10-04",
@@ -39,20 +44,11 @@
     "desktopIntegration": "latest-cbu-20261004",
     "platform": "darwin-x64",
     "installationAndColdStart": "passed",
-    "scope": "Local installation receipt; not an acceptance result for 0.1.0-rc.1."
-  },
-  "nativeAcceptance": {
-    "platform": "macOS 15.7.4 Intel",
-    "sdkHost": "Node 25.6.0",
-    "targetFixture": "Electron 44.0.0",
-    "status": "partial",
-    "foregroundInputAndIndependentReadback": "passed",
-    "backgroundInput": "not-passed",
-    "postActionPngFreshness": "unconfirmed",
-    "electronSdkHostTccAndInput": "not-verified"
+    "scope": "Historical installation and cold-start checks only. The user reproduced Electron open failures on this integration on 2026-10-05; this is not current end-to-end Browser Use acceptance."
   },
   "notVerified": [
-    "Real paid-model visual task",
+    "Archive installation/loading and complete Desktop acceptance require a separate post-freeze maintainer receipt; rc.1 results cannot be inherited.",
+    "rc.5 post-freeze real-model P0/P1/native acceptance; combined native focus-and-type; hidden Session screenshot",
     "macOS Apple Silicon native acceptance",
     "Windows native acceptance",
     "Linux native acceptance"
@@ -63,5 +59,103 @@
     "restoreRuntimeOrReplayActions": false,
     "removePersistentLoginOnUninstall": false
   },
-  "packageValidation": "See VALIDATION.md and this version's artifact checks; do not inherit historical installation status."
+  "packageValidation": "See VALIDATION.md and this version's artifact checks; do not inherit historical installation status.",
+  "knownElectronFailure": {
+    "reportedOn": "2026-10-05",
+    "desktopIntegration": "latest-cbu-20261004",
+    "installedBundle": "0.1.0-candidate.1",
+    "status": "repeated-open-failure-reproduced-by-user",
+    "symptom": "The Sidebar tab appears, but no guest target attaches and open returns unavailable after about 15 seconds.",
+    "cause": "The production state handler required an attached guest while the client requested state before presenting the webview.",
+    "bundleFix": "0.1.0-rc.2 validates action-specific arguments and open/navigate URLs before IPC or activation ownership.",
+    "hostFixRequired": true,
+    "matchingHostNativeVerification": "passed in an isolated Electron 44 production-path fixture on 2026-10-05; archive and complete-Desktop installation results belong to the separate post-freeze maintainer receipt",
+    "previousFixtureLimit": "rc.1 Host fixtures supplied synthetic adapters and did not traverse production claim/state/webview attachment."
+  },
+  "hostAttachmentAcceptance": {
+    "date": "2026-10-05",
+    "platform": "darwin-x64",
+    "electron": "44.0.0",
+    "status": "passed-within-owned-production-path-fixture",
+    "path": "Production createElectronPage, frame and presentation -> preload -> reservation IPC -> native guest",
+    "oldStateFailure": {
+      "elapsedMs": 48,
+      "attachedGuests": 0
+    },
+    "passed": [
+      "open, observe, fill and click with independent DOM readback",
+      "cross-session target denial",
+      "three distinct native guests, including concurrent same-partition guests",
+      "client initialization and partition rejection preserve bounded diagnostics without creating extra guests"
+    ],
+    "failureLatencyMs": {
+      "clientInitialization": 46,
+      "partitionRejection": 43
+    },
+    "processExitCodes": {
+      "baseline": 0,
+      "fixed": 0
+    },
+    "postActionPngFreshness": "not-accepted; capture showed an earlier frame",
+    "evidenceId": "dsh-browser-sidebar-native-i6EjbA/result.json",
+    "evidenceSha256": "60a9172e358566b09010345a6b5c981fb5dfd64f99b78ef9868ae2cb717f4d81",
+    "scope": "Owned Electron window and loopback form, without accounts, models or a daily profile. This does not install the rc.2 archive or accept the complete Desktop application."
+  },
+  "knownModelSchemaFailure": {
+    "reportedOn": "2026-10-06",
+    "installedBundle": "0.1.0-rc.2",
+    "provider": "deepseek-official",
+    "model": "deepseek-flash",
+    "failure": "HTTP 400 before tool execution: browser_use root oneOf had no explicit type object.",
+    "bundleFix": "0.1.0-rc.3 advertises an object root; action descriptions and pre-IPC validation derive from the same required-field map. Conditional requirements are enforced at execution, not represented as top-level oneOf.",
+    "liveRetest": "Recorded separately after the candidate archive is frozen."
+  },
+  "liveAcceptance20261006": {
+    "bundle": "0.1.0-rc.3",
+    "desktopAsarSha256": "8595710b7dfab2088830811a4cd606fc55e2454cd37d7f25f0b69565e312e8d0",
+    "platform": "darwin-x64",
+    "realModel": "deepseek-official/deepseek-flash/max",
+    "visibleElectronBrowser": "passed",
+    "nativeScreenshotForegroundClickSingleKeyAndReadback": "passed",
+    "nativeTypeText": "failed-type_text_incomplete",
+    "nativeBackgroundScroll": "refused",
+    "backgroundBrowserScroll": "waited-until-foreground",
+    "fullWindowAx": "known-app-menu-block",
+    "foregroundPreparation": "assisted",
+    "rc4PostFreezeAcceptance": "separate-maintainer-receipt",
+    "rc4NativeTypeText": "passed separate foreground click, fresh screenshot, coordinate-free ASCII and Chinese type_text with independent readback"
+  },
+  "historicalNativeAcceptance": {
+    "platform": "macOS 15.7.4 Intel",
+    "sdkHost": "Node 25.6.0",
+    "targetFixture": "Electron 44.0.0",
+    "status": "partial",
+    "foregroundInputAndIndependentReadback": "passed",
+    "backgroundInput": "not-passed",
+    "postActionPngFreshness": "unconfirmed",
+    "electronSdkHostTccAndInput": "not-verified"
+  },
+  "stabilityAcceptance20261007": {
+    "platform": "darwin-x64",
+    "electron": "44.0.0",
+    "backgroundBrowserScrollPixels": 450,
+    "backgroundCanvasPixels": "red to blue immediately after click; no foreground activation",
+    "scope": "isolated production guest/client modules; archive and real-model checks separate",
+    "evidenceId": "dsh-browser-sidebar-native-Dtowbx/result.json"
+  },
+  "postFreezeStatus20261009": {
+    "archiveSha256": "6466ee4664614f21703f8e79cf75baed12a6d32307921e14e1e58ca76e339ca1",
+    "archiveUnchanged": true,
+    "installedDarwinX64PackageFilesMatched": 10,
+    "matchingDesktopInstallationDate": "2026-10-08",
+    "loaderAndClientChecks": "passed in maintainer installation receipt",
+    "hostOcclusionAndReopenedCanvas": "passed in isolated fixture only",
+    "realModelP0": "not-completed",
+    "realModelP1": "not-completed-for-final-combination",
+    "realModelNativeChineseInput": "not-completed-for-rc5",
+    "latestMaintainedNativeAttemptDate": "2026-10-08",
+    "latestMaintainedNativeAttempt": "CONTEXT_MANAGER_BLOCKED before any native tool call",
+    "currentNativePermission": "unknown; recheck in actual runtime",
+    "sourceDocumentationUpdatedAfterArchiveFreeze": true
+  }
 }

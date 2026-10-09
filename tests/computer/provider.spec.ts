@@ -12,6 +12,7 @@ import { SessionId } from '@deepseek-ai/dsh-session'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import * as NativeProvider from '../../src/computer/index.ts'
 import { catalog, fixture, resetFixture } from './fixtures/cua-driver.ts'
+import { imageRoute, mountImageAdmission } from './fixtures/images.ts'
 
 vi.mock('@trycua/cua-driver', async () => import('./fixtures/cua-driver.ts'))
 
@@ -23,8 +24,9 @@ beforeEach(async () => {
   ctx = new Context()
   await ctx.plugin(ComputerUseRegistry)
   await mountAgentLoopTestDependencies(ctx)
+  await mountImageAdmission(ctx)
   const harness = await mountAgentLoopTestHarness(ctx)
-  agent = await harness.create(SessionId('native-owner'))
+  agent = await harness.create(SessionId('native-owner'), imageRoute)
 })
 
 afterEach(async () => {
@@ -56,6 +58,51 @@ describe('Cua Driver native provider', () => {
     expect(ctx.computerUse.providerName).toBeUndefined()
     expect(fixture.shutdowns).toBe(1)
     expect(fixture.destroys).toBe(1)
+  })
+
+  it('defaults window observation to capture-only and advertises the enforced restriction', async () => {
+    await ctx.plugin(NativeProvider)
+    const schema = ctx.tools.schemas().find(tool => tool.name === 'cua_driver_native__get_window_state')!
+    expect(schema.description).toContain('Full window AX scanning is disabled')
+    expect(schema.parameters).toMatchObject({ type: 'object', properties: {
+      include_accessibility_tree: { type: 'boolean', default: false }, include_screenshot: { type: 'boolean', default: true },
+    } })
+    expect((await execute('get_window_state', { pid: 9, window_id: 7 })).isError).toBe(false)
+    expect(fixture.calls.at(-1)?.args).toEqual({ pid: 9, window_id: 7, include_accessibility_tree: false, include_screenshot: true })
+  })
+
+  it.each([
+    [{ include_accessibility_tree: true }, 'CU_AX_SCAN_DISABLED'],
+    [{ include_screenshot: false }, 'CU_SCREENSHOT_REQUIRED'],
+  ])('rejects unsafe observation options before native authority or dispatch: %j', async (options, code) => {
+    await ctx.plugin(NativeProvider)
+    const result = await execute('get_window_state', { pid: 9, window_id: 7, ...options })
+    expect(result.isError).toBe(true)
+    if (!result.isError) throw new Error('Unsafe observation was admitted')
+    expect(result.error.info?.code).toBe(code)
+    expect(fixture.calls).toHaveLength(0)
+    expect(fixture.sessions).toHaveLength(0)
+  })
+
+  it('does not expose verify_state, which internally bypasses capture-only observation in SDK 0.28', async () => {
+    fixture.list = async () => JSON.stringify({ tools: [...catalog.tools, {
+      name: 'verify_state', description: 'Verify bounded predicates on one exact window.',
+      inputSchema: { type: 'object', properties: { pid: { type: 'integer' }, window_id: { type: 'integer' }, expect: { type: 'array', items: { type: 'object' } }, include_screenshot: { type: 'boolean' } }, required: ['pid', 'window_id', 'expect'] },
+    }] })
+    await ctx.plugin(NativeProvider)
+    expect(ctx.tools.schemas().some(tool => tool.name === 'cua_driver_native__verify_state')).toBe(false)
+    expect((await execute('verify_state', { pid: 9, window_id: 7, expect: [{ window: { exists: true } }], include_screenshot: true })).isError).toBe(true)
+    expect(fixture.calls).toHaveLength(0)
+    expect(fixture.sessions).toHaveLength(0)
+  })
+
+  it('does not expose native AX menu traversal while retaining ordinary input tools', async () => {
+    fixture.list = async () => JSON.stringify({ tools: [...catalog.tools, { name: 'invoke_menu', inputSchema: { type: 'object' } }] })
+    await ctx.plugin(NativeProvider)
+    expect(ctx.tools.schemas().map(tool => tool.name)).toEqual(catalog.tools.map(tool => `cua_driver_native__${tool.name}`))
+    expect((await execute('invoke_menu', { pid: 9, window_id: 7, path: ['File', 'Open'] })).isError).toBe(true)
+    expect(fixture.calls).toHaveLength(0)
+    expect(fixture.sessions).toHaveLength(0)
   })
 
   it('rejects another provider before importing or creating a native runtime', async () => {

@@ -9,7 +9,7 @@ import { ComputerUseProviderName } from '@deepseek-ai/dsh-computer-use/brand'
 import { createMcpToolDefinition } from '@deepseek-ai/dsh-mcp-client'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 import { z } from 'zod'
-import type { CuaDriver as NativeDriver } from '@trycua/cua-driver'
+import type { CuaDriver as NativeDriver, ToolResult } from '@trycua/cua-driver'
 import type {} from '@deepseek-ai/dsh-computer-use'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-tools'
@@ -60,15 +60,42 @@ const HOST_MANAGED_TOOLS = new Set([
   'start_recording', 'stop_recording', 'get_recording_state',
 ])
 
+// Cua 0.28 verification internally enables the full AX tree; invoke_menu directly
+// traverses AXMenuBar/AXMenu children. Neither can honor capture-only observation.
+const UNSAFE_AX_TOOLS = new Set(['verify_state', 'invoke_menu'])
+
 function isBrowserTool(name: string): boolean {
   return name === 'page' || /(^|_)browser(_|$)/u.test(name)
 }
 
-const GUIDANCE = `Cua Driver native computer-use tools operate the host desktop. Discover the exact app and window, then get a fresh window snapshot before acting. Use element_token from that snapshot, or coordinates from its screenshot. A new snapshot of that window invalidates its earlier element tokens. Select either target or the legacy pid/window_id fields; do not combine them.
+const GUIDANCE = `Cua Driver native computer-use tools operate the host desktop. Discover the exact app and window, then get a fresh window screenshot before acting. Use coordinates from that screenshot. Select either target or the legacy pid/window_id fields; do not combine them.
 
 Prefer background delivery. A refusal does not authorize a foreground retry. Verify the requested outcome from fresh state after an action; a delivered click alone does not prove the outcome. After cancellation, inspect current state before retrying because completed input is not rolled back. A desktop work segment belongs to one live session until its turn stops; other sessions cannot interleave native calls. After a user stop or takeover, only the user can resume control and a fresh window snapshot is required. This coordinates this Host only; the user and other applications can still change the desktop.
 
+get_window_state defaults to capture-only: include_accessibility_tree:false and include_screenshot:true. Full window accessibility scans, SDK verify_state, and native AX menu traversal via invoke_menu are disabled because the current SDK can block on application menus; use capture-only screenshots and Browser Use observation for browser page structure. Ordinary screenshot-coordinate and keyboard tools remain available. An empty, failed, or undelivered screenshot does not permit input. For text entry, prefer a separately authorized click to focus the field, then a fresh screenshot, then type_text without x/y on the same exact window. Explicit foreground permission is still required. Sent (unverified) is delivery feedback, not proof of the field value: verify it with a new screenshot or Browser Use observation. If type_text returns type_text_incomplete or any input result is uncertain, inspect the current target and do not automatically replay or append the remaining text. press_key without x/y can perform individual physical keys after separately authorized focus and a fresh screenshot; it is not an automatic fallback for typing failures.
+
 On macOS, cursor-overlay operations may return facility_unavailable even when screenshots and input work.`
+
+const WINDOW_OBSERVATION_DESCRIPTION = 'Capture a fresh screenshot of the exact pid/window_id, with window metadata. Defaults to include_accessibility_tree:false and include_screenshot:true. Full window AX scanning is disabled because Cua 0.28 can block application menus; use Browser Use observation for browser page structure. Ground coordinates on the returned PNG and observe again after every action. A missing or failed PNG does not authorize input.'
+
+function observationArguments(args: Record<string, unknown>): Record<string, unknown> {
+  if (args.include_accessibility_tree !== undefined && args.include_accessibility_tree !== false) {
+    throw new HarnessError('Full window AX scanning is disabled because the current Cua SDK can block application menus. Use a native screenshot or Browser Use observation for browser page structure.', 'CU_AX_SCAN_DISABLED')
+  }
+  if (args.include_screenshot !== undefined && args.include_screenshot !== true) {
+    throw new HarnessError('Native observation requires a screenshot. Omit include_screenshot or set it to true.', 'CU_SCREENSHOT_REQUIRED')
+  }
+  return { ...args, include_accessibility_tree: false, include_screenshot: true }
+}
+
+function observationSchema(schema: Record<string, unknown>): Record<string, unknown> {
+  const properties = typeof schema.properties === 'object' && schema.properties !== null ? schema.properties : {}
+  return { ...schema, properties: {
+    ...properties,
+    include_accessibility_tree: { type: 'boolean', default: false, description: 'Must be false. Full window AX scans are disabled by this provider because the current SDK can block application menus.' },
+    include_screenshot: { type: 'boolean', default: true, description: 'Must be true. A fresh inline PNG is required before native input.' },
+  } }
+}
 
 /**
  * Own one native runtime and expose its catalog through the MCP result adapter.
@@ -141,8 +168,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     const catalog = ToolCatalog.parse(JSON.parse(await activeDriver.listToolsJson({ signal: lifetime.signal })))
     lifetime.signal.throwIfAborted()
     const names = new Set<string>()
+    const observations = new WeakMap<object, ToolResult>()
     for (const tool of catalog.tools) {
       if (HOST_MANAGED_TOOLS.has(tool.name)) continue
+      if (UNSAFE_AX_TOOLS.has(tool.name)) continue
       if (!config.browserTools && isBrowserTool(tool.name)) continue
       const publicName = `cua_driver_native__${tool.name}`
       if (!TOOL_NAME.test(publicName)) {
@@ -153,8 +182,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       const definition = createMcpToolDefinition(inner, {
         name: publicName,
         rawName: tool.name,
-        description: tool.description ?? '',
-        inputSchema: tool.inputSchema,
+        description: tool.name === 'get_window_state' ? WINDOW_OBSERVATION_DESCRIPTION : tool.description ?? '',
+        inputSchema: tool.name === 'get_window_state' ? observationSchema(tool.inputSchema) : tool.inputSchema,
         outputSchema: tool.outputSchema,
         async call(args, execution) {
           const combined = AbortSignal.any([execution.signal, lifetime.signal])
@@ -173,9 +202,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           }
           const agent = execution.agent
           if (agent === undefined) throw new HarnessError('Desktop actions require a live session owner.', 'CU_OWNER_REQUIRED')
-          const result = await activeSessions.run(agent, tool.name, args, combined)
+          const input = tool.name === 'get_window_state' ? observationArguments(args) : args
+          const result = await activeSessions.run(agent, tool.name, input, combined)
           combined.throwIfAborted()
-          return nativeMcpResult(result, tool.name)
+          const raw = nativeMcpResult(result, tool.name)
+          if (tool.name === 'get_window_state') observations.set(execution, result)
+          return raw
         },
       })
       inner.tools.register(definition)
@@ -192,6 +224,18 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         pending.delete(operation)
         exec.signal = upstream
       }
+    })
+    inner.on('tools/post-execute', async (exec, result, next) => {
+      if (observations.has(exec) && !result.isError && !result.content.some(block => block.type === 'image' && block.attachment.mediaType === 'image/png')) {
+        throw new HarnessError('The screenshot could not be delivered to the current model. Input remains blocked. Use a model with image input and an available attachment store, then capture again.', 'CU_SCREENSHOT_UNAVAILABLE')
+      }
+      return next()
+    })
+    inner.on('tools/result', (exec, result) => {
+      const observation = observations.get(exec)
+      observations.delete(exec)
+      if (!result.isError && !exec.signal.aborted && !lifetime.signal.aborted && observation !== undefined
+        && result.content.some(block => block.type === 'image' && block.attachment.mediaType === 'image/png')) activeSessions.confirmObservation(observation)
     })
     inner.systemPrompt.section({
       name: 'computer-use:cua-driver-native',

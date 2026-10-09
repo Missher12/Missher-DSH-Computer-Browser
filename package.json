@@ -1,6 +1,6 @@
 {
   "name": "@missher/dsh-computer-browser",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.0-rc.5",
   "description": "Visible Browser Use and session-owned Computer Use for compatible Missher DeepSeek Harness Desktop builds.",
   "type": "module",
   "license": "MIT",
